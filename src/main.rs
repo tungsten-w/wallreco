@@ -14,7 +14,9 @@ use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
-use anyhow::{Context, Result, bail};
+#[cfg(feature = "vision")]
+use anyhow::Context;
+use anyhow::{Result, bail};
 use clap::Parser;
 use rayon::prelude::*;
 use walkdir::WalkDir;
@@ -35,6 +37,7 @@ const CHUNK: usize = 128;
 /// sometimes — a lamplit room reads as `night`, a green field as `forest`.
 /// When the matching CLIP category actually answered, its answer wins; when it
 /// stayed silent, the heuristic is all we have and is kept.
+#[cfg(feature = "vision")]
 const OVERRULED: &[(&str, &[&str])] =
     &[("time", &["night", "sunset"]), ("setting", &["forest", "nature", "space", "sky"])];
 
@@ -188,7 +191,7 @@ impl Engine {
                 );
             }
             let clip = vision::Clip::load(&dir, vocab, args.jobs())?;
-            return Ok(Engine { clip: Some(clip) });
+            Ok(Engine { clip: Some(clip) })
         }
         #[cfg(not(feature = "vision"))]
         {
@@ -208,6 +211,7 @@ impl Engine {
 
         let mut results = Vec::with_capacity(files.len());
         for chunk in files.chunks(CHUNK) {
+            #[cfg_attr(not(feature = "vision"), allow(unused_mut))]
             let mut batch = self.analyse_chunk(args, chunk, &bar);
             #[cfg(feature = "vision")]
             self.add_vision_tags(&mut batch)?;
@@ -512,7 +516,7 @@ fn report_explain(results: &[Outcome]) {
                     "  hue       {:>5.0}deg  {:>5.1}% of pixels  -> {}",
                     hue,
                     frac * 100.0,
-                    name.map_or_else(|| ui::dim("below threshold"), |n| ui::blue(n))
+                    name.map_or_else(|| ui::dim("below threshold"), ui::blue)
                 );
             }
         }
@@ -585,6 +589,7 @@ fn setup_vision() -> Result<ExitCode> {
     bail!("this build has no vision support (compiled with --no-default-features)")
 }
 
+#[cfg(feature = "vision")]
 fn num_threads() -> usize {
-    std::thread::available_parallelism().map_or(4, |n| n.get())
+    std::thread::available_parallelism().map_or(4, std::num::NonZero::get)
 }
