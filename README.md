@@ -48,12 +48,28 @@ Renaming is the one destructive thing this tool does, so there are two safety
 nets: `-n` previews without touching anything, and `--undo` reverses the last
 run.
 
+### Starting over
+
+```sh
+wallreco -c -n ~/Pictures/Wallpapers   # preview
+wallreco -c ~/Pictures/Wallpapers      # strip every #tag, leave the rest
+```
+
+`--clean` takes the tags back out of the filenames and stops. It opens no
+image, so it finishes instantly whatever the size of the folder, and it is
+undoable like any other run. A file whose name is *only* tags is left alone
+rather than given an invented one.
+
+Use `--clean` to get the folder back the way it was, `--retag` when you only
+want the tags recomputed in place.
+
 ### Options
 
 | Option | Effect |
 | --- | --- |
 | `-j, --jobs N` | parallel workers (default: one per core) |
 | `-r, --retag` | strip existing `#tags` and recompute |
+| `-c, --clean` | remove every `#tag` and stop, leaving the original names |
 | `-n, --dry-run` | show what would be renamed, change nothing |
 | `-m, --max-tags N` | keep at most N tags per file (default: all) |
 | `-g, --grid N` | sampling grid size (default 64, 24–512) |

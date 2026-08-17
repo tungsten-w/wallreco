@@ -16,8 +16,15 @@ Examples:
   wallreco ~/Pictures/Wallpapers                 tag new wallpapers
   wallreco -n --retag ~/Pictures/Wallpapers      preview a full re-tag
   wallreco -V ~/Pictures/Wallpapers              colours + objects
+  wallreco -c -n ~/Pictures/Wallpapers           preview removing every tag
   wallreco --explain sunset.png                  show why those tags
   wallreco --undo                                put the last run's names back
+
+Starting over:
+  --clean removes the tags and stops, leaving the original filenames.
+  --retag removes them and computes new ones in the same pass. Use --clean
+  when you want the folder back the way it was, --retag when you just want
+  the tags refreshed.
 ";
 
 #[derive(Parser, Debug)]
@@ -47,6 +54,10 @@ pub struct Args {
     /// Strip existing #tags and recompute, instead of skipping tagged files
     #[arg(short, long)]
     pub retag: bool,
+
+    /// Remove every #tag from the filenames and stop; tag nothing
+    #[arg(short = 'c', long, conflicts_with_all = ["retag", "vision", "explain"])]
+    pub clean: bool,
 
     /// Show what would be renamed, change nothing
     #[arg(short = 'n', long)]

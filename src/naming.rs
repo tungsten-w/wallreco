@@ -87,6 +87,14 @@ mod tests {
     }
 
     #[test]
+    fn a_name_of_nothing_but_tags_strips_to_nothing() {
+        // --clean leans on this: an empty result means there is no original
+        // name to go back to, so the file is left for its owner to name.
+        assert_eq!(strip_tags("#red-#blue"), "");
+        assert_eq!(strip_tags("-#red"), "");
+    }
+
+    #[test]
     fn round_trips() {
         let tags = vec!["orange".to_string(), "blue".to_string()];
         let name = compose("sunset", "png", &tags, 0).unwrap();
