@@ -124,13 +124,24 @@ fn collect(paths: &[PathBuf]) -> Result<Vec<PathBuf>> {
             out.insert(path.clone());
             continue;
         }
-        for entry in WalkDir::new(path).follow_links(false).into_iter().filter_map(Result::ok) {
+        // Hidden directories are caches, not collections: `.thumbnails` next
+        // to a wallpaper folder would otherwise get tagged and renamed too.
+        // A hidden path named explicitly on the command line is still scanned.
+        let walker = WalkDir::new(path)
+            .follow_links(false)
+            .into_iter()
+            .filter_entry(|e| e.depth() == 0 || !is_hidden(e.file_name()));
+        for entry in walker.filter_map(Result::ok) {
             if entry.file_type().is_file() && has_image_extension(entry.path()) {
                 out.insert(entry.into_path());
             }
         }
     }
     Ok(out.into_iter().collect())
+}
+
+fn is_hidden(name: &std::ffi::OsStr) -> bool {
+    name.to_string_lossy().starts_with('.')
 }
 
 fn file_name(p: &Path) -> String {
