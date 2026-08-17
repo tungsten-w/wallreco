@@ -24,6 +24,9 @@ Examples:
 #[command(
     name = "wallreco",
     version,
+    // `-V` belongs to --vision here, so --version keeps only its long form
+    // rather than quietly sharing a letter with it.
+    disable_version_flag = true,
     about = "Tag wallpapers with #hashtags for their colours, mood and content",
     long_about = "Tag wallpapers with English #hashtags describing their dominant colours, mood \
                   and content, so a rofi picker can filter them by typing a keyword.\n\n  \
@@ -80,6 +83,10 @@ pub struct Args {
     /// Only errors and the summary
     #[arg(short, long, conflicts_with = "explain")]
     pub quiet: bool,
+
+    /// Print version
+    #[arg(long, action = clap::ArgAction::Version)]
+    pub version: Option<bool>,
 }
 
 impl Args {
