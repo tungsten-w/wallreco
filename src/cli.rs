@@ -89,11 +89,20 @@ pub struct Args {
     pub version: Option<bool>,
 }
 
+/// Hard ceiling on `-j`, independent of what the user asks for.
+///
+/// Every worker is a real OS thread with its own stack, and each one that
+/// touches the vision stage holds a CLIP session's worth of ONNX Runtime
+/// state. A typo like `-j 999999` should give an error, not spend minutes and
+/// gigabytes standing up threads nothing can schedule.
+const MAX_JOBS: usize = 256;
+
 impl Args {
     pub fn jobs(&self) -> usize {
         self.jobs
             .filter(|j| *j > 0)
             .unwrap_or_else(|| std::thread::available_parallelism().map_or(4, |n| n.get()))
+            .min(MAX_JOBS)
     }
 
     /// `--explain` is a read-only view: it should never move a file out from

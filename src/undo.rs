@@ -33,8 +33,13 @@ pub fn save(renames: Vec<Rename>) -> Result<PathBuf> {
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent).with_context(|| format!("create {}", parent.display()))?;
     }
-    fs::write(&path, serde_json::to_vec_pretty(&Log { renames })?)
-        .with_context(|| format!("write {}", path.display()))?;
+    // Write beside the real path and rename over it, so a crash or a power
+    // loss mid-write never leaves a half-written log — the one file that
+    // makes the tool's one destructive action reversible.
+    let tmp = path.with_extension("json.part");
+    fs::write(&tmp, serde_json::to_vec_pretty(&Log { renames })?)
+        .with_context(|| format!("write {}", tmp.display()))?;
+    fs::rename(&tmp, &path).with_context(|| format!("write {}", path.display()))?;
     Ok(path)
 }
 
