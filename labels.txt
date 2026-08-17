@@ -1,0 +1,159 @@
+# wallreco vision vocabulary
+#
+# What CLIP is asked to look for. Copy this file to
+# ~/.config/wallreco/labels.txt and edit it — wallreco picks that copy up
+# automatically and re-embeds the prompts the first time it notices a change.
+#
+# Format
+# ------
+#   [category] mode=one|many threshold=0.30 max=2 requires=other
+#   tag = prompt | another prompt for the same tag
+#   ~   = a prompt that is never emitted as a tag
+#
+# Every category is scored on its own: wallreco softmaxes the prompts inside
+# one category and keeps whatever clears `threshold`. That is what makes the
+# tags precise. Asking "is this forest, city, beach or desert?" gives a sharp
+# answer; asking "which of these ninety things is it?" does not.
+#
+#   mode=one    at most one tag from this category (they are alternatives)
+#   mode=many   several may fire, best first, up to `max`
+#   threshold   minimum probability within the category, 0..1
+#   requires    only ask this category if the named one above it answered
+#   ~ lines     decoys. They soak up the probability of images that match
+#               nothing in the category, so an abstract gradient does not get
+#               called a forest just because forest was the closest of four
+#               bad options. Every category needs several.
+#
+# Prompts are full English sentences on purpose — CLIP was trained on captions,
+# so "a photograph of a cat" scores far better than "cat".
+#
+# If a tag fires where it should not, the fix is usually a better decoy rather
+# than a higher threshold: a threshold turns the category off for everything,
+# a decoy only takes the images that genuinely belong to it.
+
+
+[style] mode=one threshold=0.34
+anime    = anime artwork | a digital illustration in japanese anime style | an anime screenshot
+pixelart = pixel art where the individual square pixels are visible as blocks | a retro video game sprite made of chunky pixels
+painting = an oil painting on canvas | a traditional painted artwork | a watercolour painting
+photo    = a photograph taken with a camera | a real photo of a real place
+3d       = a 3d rendered scene | a computer generated cgi render | a blender render
+lineart  = a minimal line drawing | black and white line art with no shading
+vector   = a flat digital illustration with bold smooth shapes and clean edges | a stylised drawing with large areas of flat colour
+~        = a blurry out of focus image
+~        = a plain background with nothing on it
+~        = a photograph of a screen or a user interface
+~        = a smooth digital painting with soft shading
+
+
+[people] mode=one threshold=0.30
+character = a fictional character | a drawn portrait of one person | a character illustration
+girl      = a girl | a young woman | a female character portrait
+boy       = a boy | a young man | a male character portrait
+crowd     = a crowd of many people | a group of several people together
+~         = a landscape with nobody in it at all
+~         = an object photographed on its own with nobody around
+~         = an empty room with no people
+~         = an abstract pattern with no people
+~         = an animal with no people nearby
+~         = a plain coloured background with no people
+
+
+[subject] mode=many threshold=0.32 max=2
+cat        = a photograph of a cat | a drawing of a cat
+dog        = a photograph of a dog | a drawing of a dog
+fox        = a fox
+wolf       = a wolf howling
+bird       = a bird | a bird in flight | a heron standing in water
+horse      = a horse
+fish       = fish swimming underwater | a jellyfish
+butterfly  = a butterfly
+dragon     = a dragon | a mythical winged beast
+robot      = a robot | a giant mecha
+samurai    = a samurai in armour | a japanese warrior with a katana
+knight     = a knight in plate armour
+astronaut  = an astronaut in a spacesuit
+car        = a car on a road | a sports car
+motorcycle = a motorcycle
+plane      = an airplane in flight | a fighter jet
+ship       = a sailing ship at sea | a boat on the water
+spaceship  = a spaceship in space | a spacecraft flying
+castle     = a castle | a stone fortress on a hill
+temple     = a japanese temple | a shinto shrine | a pagoda
+lighthouse = a lighthouse by the sea
+bridge     = a large bridge
+skull      = a human skull
+guitar     = a guitar | someone playing a musical instrument
+flower     = flowers in bloom | a close up of a flower
+tree       = a single tree standing alone
+moon       = the moon in the night sky | a large moon above the horizon
+planet     = a planet seen from space | a gas giant with rings
+stars      = a night sky full of stars | the milky way galaxy
+clouds     = big dramatic clouds filling the sky
+lightning  = a lightning bolt in a storm
+fire       = fire and flames | a campfire burning
+waterfall  = a waterfall falling down rocks
+train      = a train on railway tracks
+food       = a plate of food | a cup of coffee
+book       = an open book | a shelf of books
+window     = a view through a window
+sword      = a sword | a blade held up
+eye        = an extreme close up of an eye
+~          = an abstract background with no recognisable object in it
+~          = a smooth colour gradient with nothing in it
+~          = a repeating geometric pattern
+~          = an empty landscape with no particular object in it
+~          = a wall of solid colour
+~          = a building seen from the street
+~          = scenery with trees and ground and nothing else
+~          = a person standing with no other object
+
+
+[setting] mode=one threshold=0.30
+forest      = a forest of trees | woodland with tall trees
+jungle      = a dense tropical jungle
+beach       = a sandy beach by the ocean | a tropical shore with palm trees
+ocean       = the open sea | waves on the surface of the ocean
+lake        = a calm lake reflecting the sky | the still surface of a pond
+river       = a river flowing through the land
+mountains   = tall mountain peaks | a mountain range on the horizon
+desert      = a sand desert with dunes
+snow        = a snowy winter landscape | a field covered in snow
+field       = a wide grassy field | a meadow of grass
+city        = a city skyline with tall buildings | a street between buildings at night
+village     = a small village of houses | a row of shops along a street
+ruins       = ancient stone ruins | an abandoned crumbling building
+interior    = the inside of a room | a bedroom interior | an office desk
+cave        = the inside of a cave
+underwater  = an underwater scene beneath the sea
+space       = outer space seen from a spacecraft, with planets and nebulae and no ground
+garden      = a japanese garden | a flower garden
+sky         = a wide open sky seen from the ground | a view of the far horizon from a rooftop or balcony
+~           = an abstract artwork that is not a place at all
+~           = a close up of an object with no background
+~           = a flat single colour background
+~           = a portrait of a character against a blank background
+~           = a drawing of an object floating on plain colour
+~           = a repeating decorative pattern
+
+
+[time] mode=one threshold=0.42 requires=setting
+night   = a scene at night in the dark | a landscape under a dark night sky
+sunset  = a sunset with an orange sky | a sunrise over the horizon
+day     = a bright scene in daylight | a sunny day with a blue sky
+~       = an indoor scene lit by artificial light
+~       = an underwater or underground scene with no sky
+~       = an abstract image with no sky and no time of day
+~       = a close up where the sky is not visible
+
+
+[weather] mode=one threshold=0.50 requires=setting
+rain  = heavy rain falling | a rainy day with wet streets
+fog   = thick fog and mist | a misty foggy morning
+storm = a violent storm with dark clouds and rain
+snowfall = snow falling through the air
+~     = clear calm weather with no clouds
+~     = an indoor scene with no weather at all
+~     = an abstract image with no weather
+~     = a clear sky with only a few clouds
+~     = a dark scene where the weather cannot be told
