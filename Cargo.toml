@@ -1,0 +1,34 @@
+[package]
+name = "wallreco"
+version = "0.1.0"
+edition = "2024"
+description = "Tag wallpapers with #hashtags for their colours, mood and content so rofi can filter them"
+license = "MIT"
+repository = "https://github.com/tungsten-w/wallreco"
+
+[dependencies]
+anyhow = "1.0.104"
+clap = { version = "4.6.6", features = ["derive"] }
+image = { version = "0.25.10", features = ["avif-native"] }
+indicatif = "0.18.6"
+rayon = "1.12.0"
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.151"
+walkdir = "2.5.0"
+
+# Object recognition (CLIP). Optional: `--no-default-features` builds the
+# colour-only binary with no ONNX runtime and no model download.
+ndarray = { version = "0.17.2", optional = true }
+ort = { version = "2.0.0-rc.13", features = ["download-binaries"], optional = true }
+tokenizers = { version = "0.23.1", default-features = false, features = ["onig"], optional = true }
+ureq = { version = "3.4.0", optional = true }
+
+[features]
+default = ["vision"]
+vision = ["dep:ndarray", "dep:ort", "dep:tokenizers", "dep:ureq"]
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+strip = true
