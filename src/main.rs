@@ -73,6 +73,10 @@ fn run(args: &Args) -> Result<ExitCode> {
         bail!("no images found in {}", list_paths(&args.paths));
     }
 
+    if args.clean {
+        return clean(args, &files);
+    }
+
     let (todo, already_tagged) = if args.retag || args.explain {
         (files, 0)
     } else {
@@ -344,20 +348,20 @@ fn target(path: &Path, tags: &[String], retag: bool, max_tags: usize) -> Option<
         return None;
     }
 
-    let dir = path.parent().unwrap_or(Path::new("."));
-    let mut candidate = dir.join(&composed);
+    free_name(path.parent().unwrap_or(Path::new(".")), &composed)
+}
+
+/// `dir/name`, or `dir/name-2` and so on when that is taken.
+///
+/// Returns `None` if a hundred wallpapers all want the same name, which means
+/// something is wrong that renaming will not fix.
+fn free_name(dir: &Path, name: &str) -> Option<PathBuf> {
+    let candidate = dir.join(name);
     if !candidate.exists() {
         return Some(candidate);
     }
-    // Another wallpaper already earned this exact name; number this one.
-    let (cstem, cext) = composed.rsplit_once('.')?;
-    for n in 2..100 {
-        candidate = dir.join(format!("{cstem}-{n}.{cext}"));
-        if !candidate.exists() {
-            return Some(candidate);
-        }
-    }
-    None
+    let (stem, ext) = name.rsplit_once('.')?;
+    (2..100).map(|n| dir.join(format!("{stem}-{n}.{ext}"))).find(|c| !c.exists())
 }
 
 #[derive(Default)]
@@ -535,6 +539,94 @@ fn report_explain(results: &[Outcome]) {
         }
         println!();
     }
+}
+
+// ---------------------------------------------------------------------------
+// --clean
+// ---------------------------------------------------------------------------
+
+/// Take every `#tag` back out of the filenames and stop.
+///
+/// Purely a rename: no image is opened, so this finishes instantly however big
+/// the folder is. Use it to start from scratch — `--retag` recomputes tags in
+/// place, this one just leaves the original names behind.
+fn clean(args: &Args, files: &[PathBuf]) -> Result<ExitCode> {
+    let dry = args.is_dry_run();
+    let (mut cleaned, mut untagged, mut failed) = (0usize, 0usize, 0usize);
+    let mut nameless = Vec::new();
+    let mut log = Vec::new();
+
+    for path in files {
+        let name = file_name(path);
+        if !naming::is_tagged(&name) {
+            untagged += 1;
+            continue;
+        }
+        let Some((stem, ext)) = name.rsplit_once('.') else {
+            untagged += 1;
+            continue;
+        };
+
+        let stripped = naming::strip_tags(stem);
+        if stripped.is_empty() {
+            // The whole name was tags. Inventing one would be worse than
+            // leaving it: the person who named it is the one who should choose.
+            nameless.push(name.clone());
+            continue;
+        }
+
+        let dir = path.parent().unwrap_or(Path::new("."));
+        let Some(new_path) = free_name(dir, &format!("{stripped}.{ext}")) else {
+            failed += 1;
+            eprintln!("{} {name}: no free name left", ui::red("failed:"));
+            continue;
+        };
+        if new_path == *path {
+            untagged += 1;
+            continue;
+        }
+
+        if !dry {
+            if let Err(e) = std::fs::rename(path, &new_path) {
+                failed += 1;
+                eprintln!("{} {name}: {e}", ui::red("failed:"));
+                continue;
+            }
+            log.push(undo::Rename { from: path.clone(), to: new_path.clone() });
+        }
+        cleaned += 1;
+        if !args.quiet {
+            println!("  {}", ui::dim(&name));
+            println!("    {} {}", ui::green("->"), file_name(&new_path));
+        }
+    }
+
+    if !log.is_empty()
+        && let Err(e) = undo::save(log)
+    {
+        eprintln!("{} could not record this run for --undo: {e:#}", ui::yellow("warning:"));
+    }
+
+    println!();
+    if dry {
+        println!("{}", ui::bold("dry run — nothing was renamed"));
+        println!("  {:<12} {cleaned}", "would clean:");
+    } else {
+        println!("  {:<12} {cleaned}", "cleaned:");
+    }
+    if untagged > 0 {
+        println!("  {:<12} {untagged}", "no tags:");
+    }
+    if failed > 0 {
+        println!("  {:<12} {failed}", "failed:");
+    }
+    for name in &nameless {
+        eprintln!("{} {name} is nothing but tags — rename it yourself", ui::yellow("skipped:"));
+    }
+    if cleaned > 0 && !dry {
+        println!("{}", ui::dim("  wallreco --undo puts these names back"));
+    }
+    Ok(if failed > 0 { ExitCode::FAILURE } else { ExitCode::SUCCESS })
 }
 
 // ---------------------------------------------------------------------------
